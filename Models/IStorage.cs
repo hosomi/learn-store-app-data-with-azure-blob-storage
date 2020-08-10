@@ -1,7 +1,6 @@
-﻿using System;
+﻿using Azure.Storage.Blobs.Models;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace FileUploader.Models
