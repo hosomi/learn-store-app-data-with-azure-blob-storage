@@ -1,10 +1,9 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
-using Microsoft.WindowsAzure.Storage;
-using Microsoft.WindowsAzure.Storage.Blob;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 
 namespace FileUploader.Models
 {
@@ -19,51 +18,46 @@ namespace FileUploader.Models
 
         public Task Initialize()
         {
-            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(storageConfig.ConnectionString);
-            CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
-            CloudBlobContainer container = blobClient.GetContainerReference(storageConfig.FileContainerName);
-            return container.CreateIfNotExistsAsync();
+            BlobServiceClient blobServiceClient = new BlobServiceClient(storageConfig.ConnectionString);
+            BlobContainerClient blobContainerClient = blobServiceClient.GetBlobContainerClient(storageConfig.FileContainerName);
+
+            return blobContainerClient.CreateIfNotExistsAsync();
         }
 
         public Task Save(Stream fileStream, string name)
         {
-            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(storageConfig.ConnectionString);
-            CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
-            CloudBlobContainer container = blobClient.GetContainerReference(storageConfig.FileContainerName);
-            CloudBlockBlob blockBlob = container.GetBlockBlobReference(name);
-            return blockBlob.UploadFromStreamAsync(fileStream);
+            BlobServiceClient blobServiceClient = new BlobServiceClient(storageConfig.ConnectionString);
+            BlobContainerClient blobContainerClient = blobServiceClient.GetBlobContainerClient(storageConfig.FileContainerName);
+            BlobClient blobClient = blobContainerClient.GetBlobClient(name);
+
+            return blobClient.UploadAsync(fileStream);
         }
 
         public async Task<IEnumerable<string>> GetNames()
         {
             List<string> names = new List<string>();
 
-            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(storageConfig.ConnectionString);
-            CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
-            CloudBlobContainer container = blobClient.GetContainerReference(storageConfig.FileContainerName);
+            BlobServiceClient blobServiceClient = new BlobServiceClient(storageConfig.ConnectionString);
+            BlobContainerClient blobContainerClient = blobServiceClient.GetBlobContainerClient(storageConfig.FileContainerName);
 
-            BlobContinuationToken continuationToken = null;
-            BlobResultSegment resultSegment = null;
-
-            do
+            await foreach (BlobItem blob in blobContainerClient.GetBlobsAsync(BlobTraits.None, BlobStates.None, string.Empty))
             {
-                resultSegment = await container.ListBlobsSegmentedAsync(continuationToken);
-
-                names.AddRange(resultSegment.Results.OfType<CloudBlockBlob>().Select(b => b.Name));
-                continuationToken = resultSegment.ContinuationToken;
-            } while (continuationToken != null);
+                names.Add(blob.Name);
+            }
 
             return names;
         }
 
-        public Task<Stream> Load(string name)
+        public async Task<Stream> Load(string name)
         {
-            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(storageConfig.ConnectionString);
-            CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
-            CloudBlobContainer container = blobClient.GetContainerReference(storageConfig.FileContainerName);
-            CloudBlockBlob blockBlob = container.GetBlockBlobReference(name);
-            return blockBlob.OpenReadAsync();
+            BlobServiceClient blobServiceClient = new BlobServiceClient(storageConfig.ConnectionString);
+            BlobContainerClient blobContainerClient = blobServiceClient.GetBlobContainerClient(storageConfig.FileContainerName);
+            BlobClient blobClient = blobContainerClient.GetBlobClient(name);
+            BlobDownloadInfo download = await blobClient.DownloadAsync();
+            MemoryStream stream = new MemoryStream();
+            await download.Content.CopyToAsync(stream);
+            stream.Seek(0, SeekOrigin.Begin);
+            return stream;
         }
-
     }
 }

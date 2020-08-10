@@ -36,3 +36,6 @@ https://docs.microsoft.com/ja-jp/learn/modules/store-app-data-with-azure-blob-st
 
 Azure App Service にデプロイ時は対象の構成設定の内容が適用されます。  
 
+## 特記事項
+
+現在非推奨になっている ``WindowsAzure.Storage`` から ``Azure.Storage.Blobs`` に変更してコードを書き直しています。
