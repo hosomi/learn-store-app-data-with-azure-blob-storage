@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using FileUploader.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
@@ -13,7 +14,7 @@ using Microsoft.AspNetCore.Mvc.Routing;
 namespace FileUploader.Controllers
 {
     [Route("api/[controller]")]
-
+    [Authorize]
     public class FilesController : Controller
     {
 
